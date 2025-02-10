@@ -7,7 +7,7 @@ import sqlite3
 
 class Participantes:
     # nombre de la base de datos  y ruta 
-    path = r'X:/Users/ferna/Documents/UNal/Alumnos/2024_S2/POO/Proy'
+    path = r"C:/Users/jorge/OneDrive/Documentos/Proyecto Poo"
     db_name = path + r'/Participantes.db'
     actualiza = None
     def __init__(self, master=None):
@@ -19,7 +19,12 @@ class Participantes:
         self.win.configure(background="#d9f0f9", height="480", relief="flat", width="1024")
         self.win.geometry("1024x480")
         self.path = self.path +r'/f2.ico'
-        self.win.iconbitmap(self.path)
+        
+        
+        #Esta es la linea del icono, se inhabilitara temporalmente para ejecutar el codigo
+        #self.win.iconbitmap(self.path)
+        
+        
         self.win.resizable(False, False)
         self.win.title("Conferencia MACSS y la Ingenería de Requerimientos")
         self.win.pack_propagate(0) 
@@ -219,41 +224,73 @@ class Participantes:
             self.treeDatos.insert('',0, text = row[0], values = [row[1],row[2],row[3],row[4],row[5]])
         
     def adiciona_Registro(self, event=None):
-        '''Adiciona un producto a la BD si la validación es True'''
-        if self.actualiza:
-            self.actualiza = None
-            self.entryId.configure(state = 'readonly')
-            query = 'UPDATE t_participantes SET Id = ?,Nombre = ?,Dirección = ?,Celular = ?, Entidad = ?, Fecha = ? WHERE Id = ?'
-            parametros = (self.entryId.get(), self.entryNombre.get(), self.entryDireccion.get(),
-                          self.entryCelular.get(), self.entryEntidad.get(), self.entryFecha.get()
-                          )
-                        #   self.entryId.get())
+        
+     if self.actualiza:
+        # Confirmar antes de modificar los datos
+        confirmacion = mssg.askyesno("Confirmación", "¿Está seguro de que desea modificar este registro?")
+        if not confirmacion:
+            return  # Si el usuario elige "No", se cancela la acción
+
+        # Ejecutar la actualización en la base de datos
+        query = '''UPDATE t_participantes 
+                   SET Nombre = ?, Dirección = ?, Celular = ?, Entidad = ?, Fecha = ? 
+                   WHERE Id = ?'''
+        parametros = (self.entryNombre.get(), self.entryDireccion.get(),
+                      self.entryCelular.get(), self.entryEntidad.get(), 
+                      self.entryFecha.get(), self.entryId.get())
+
+        self.run_Query(query, parametros)
+        mssg.showinfo('Éxito', 'Registro actualizado con éxito')
+
+        # Reiniciar estado y refrescar la tabla
+        self.actualiza = None
+        self.entryId.configure(state='normal')
+
+     else:
+        # Confirmar antes de insertar un nuevo registro
+        confirmacion = mssg.askyesno("Confirmación", "¿Desea agregar este nuevo registro?")
+        if not confirmacion:
+            return  # Si el usuario elige "No", se cancela la acción
+
+        # Insertar nuevo registro
+        query = 'INSERT INTO t_participantes VALUES(?, ?, ?, ?, ?, ?)'
+        parametros = (self.entryId.get(), self.entryNombre.get(), 
+                      self.entryDireccion.get(), self.entryCelular.get(), 
+                      self.entryEntidad.get(), self.entryFecha.get())
+
+        if self.valida():
             self.run_Query(query, parametros)
-            mssg.showinfo('Ok',' Registro actualizado con éxito')
+            mssg.showinfo('Éxito', f'Registro: {self.entryId.get()} agregado')
         else:
-            query = 'INSERT INTO t_participantes VALUES(?, ?, ?, ?, ?, ?)'
-            parametros = (self.entryId.get(),self.entryNombre.get(), self.entryDireccion.get(),
-                          self.entryCelular.get(), self.entryEntidad.get(), self.entryFecha.get())
-            if self.valida():
-                self.run_Query(query, parametros)
-                self.limpia_Campos()
-                mssg.showinfo('',f'Registro: {self.entryId.get()} .. agregado')
-            else:
-                mssg.showerror("¡ Atención !","No puede dejar la identificación vacía")
-        self.limpia_Campos()
-        self.lee_tablaTreeView()
+            mssg.showerror("Error", "No puede dejar la identificación vacía")
+    
+     # Limpiar y refrescar la tabla
+     self.limpia_Campos()
+     self.lee_tablaTreeView()
 
     def edita_tablaTreeView(self, event=None):
         try:
-            # Carga los campos desde la tabla TreeView
-            self.treeDatos.item(self.treeDatos.selection())['text']
+            selected_item = self.treeDatos.selection()[0]  # Obtener la fila seleccionada
+            values = self.treeDatos.item(selected_item, 'values')  # Extraer valores
+
+            # Limpiar los campos
             self.limpia_Campos()
-            self.actualiza = True # Esta variable controla la actualización
-            self.carga_Datos()
-        except IndexError as error:
-            self.actualiza = None
-            mssg.showerror("¡ Atención !",'Por favor seleccione un ítem de la tabla')
-            return
+
+            # Marcar que se está editando un registro
+            self.actualiza = True
+
+            # Insertar los valores en los campos de entrada
+            self.entryId.insert(0, self.treeDatos.item(selected_item, 'text'))
+            self.entryId.configure(state='readonly')  # ID no se puede modificar
+            self.entryNombre.insert(0, values[0])
+            self.entryDireccion.insert(0, values[1])
+            self.entryCelular.insert(0, values[2])
+            self.entryEntidad.insert(0, values[3])
+            self.entryFecha.insert(0, values[4])
+        
+        except IndexError:
+          mssg.showerror("¡Atención!", "Por favor seleccione un ítem de la tabla.")
+
         
     def elimina_Registro(self, event=None):
      pass
