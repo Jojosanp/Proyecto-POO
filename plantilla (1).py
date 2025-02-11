@@ -293,7 +293,30 @@ class Participantes:
 
         
     def elimina_Registro(self, event=None):
-     pass
+        '''Elimina uno o varios registros seleccionados con confirmación'''
+        seleccionados = self.treeDatos.selection()
+        
+        if not seleccionados:
+            mssg.showwarning("¡Atención!", "Por favor seleccione al menos un participante para eliminar.")
+            return
+        
+        confirmacion = mssg.askyesno("Confirmación", "¿Está seguro de que desea eliminar los participantes seleccionados?")
+        if confirmacion:
+            try:
+                with sqlite3.connect(self.db_name) as conn:
+                    cursor = conn.cursor()
+                    for item in seleccionados:
+                        id_participante = self.treeDatos.item(item)['text']
+                        cursor.execute("DELETE FROM t_participantes WHERE Id = ?", (id_participante,))
+                    conn.commit()
+                
+                for item in seleccionados:
+                    self.treeDatos.delete(item)
+                
+                mssg.showinfo("Éxito", "Participante(s) eliminado(s) correctamente.")
+            except Exception as e:
+                mssg.showerror("Error", f"No se pudo eliminar el/los participante(s). Error: {str(e)}")
+
 
 if __name__ == "__main__":
     app = Participantes()
